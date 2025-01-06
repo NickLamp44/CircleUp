@@ -1,4 +1,4 @@
-const { getCalendarEvents } = require("..handler");
+const { getCalendarEvents } = require("../../authServer/handler");
 const { google } = require("googleapis");
 
 // Mock the Google API
@@ -12,6 +12,7 @@ jest.mock("googleapis", () => {
     google: {
       calendar: jest.fn(() => mockCalendar),
       auth: { OAuth2: jest.fn() },
+      i,
     },
   };
 });
