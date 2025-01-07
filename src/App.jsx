@@ -5,11 +5,11 @@ import NumberOfEvents from "./components/NumberOfEvents";
 import "./App.css";
 
 const App = () => (
-  <main className="App">
+  <div className="App">
     <CitySearch />
     <EventList />
     <NumberOfEvents />
-  </main>
+  </div>
 );
 
 export default App;

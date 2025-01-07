@@ -3,11 +3,21 @@ import { render } from "@testing-library/react";
 import EventList from "../components/EventList";
 import { getEvents } from "../api";
 
+jest.mock("../api", () => ({
+  getEvents: jest.fn(() =>
+    Promise.resolve([
+      { id: 1, name: "Event 1" },
+      { id: 2, name: "Event 2" },
+    ])
+  ),
+}));
+
 describe("<EventList /> component", () => {
   let EventListComponent;
   beforeEach(() => {
     EventListComponent = render(<EventList />);
   });
+
   test('has an element with "list" role', () => {
     expect(EventListComponent.queryByRole("list")).toBeInTheDocument();
   });

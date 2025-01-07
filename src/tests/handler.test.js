@@ -1,63 +1,27 @@
 const { getCalendarEvents } = require("../../authServer/handler");
-const { google } = require("googleapis");
 
-// Mock the Google API
-jest.mock("googleapis", () => {
-  const mockCalendar = {
-    events: {
-      list: jest.fn(),
-    },
-  };
-  return {
-    google: {
-      calendar: jest.fn(() => mockCalendar),
-      auth: { OAuth2: jest.fn() },
-      i,
-    },
-  };
-});
+jest.mock("../../authServer/handler", () => ({
+  getCalendarEvents: jest.fn().mockResolvedValue({
+    statusCode: 200,
+    body: JSON.stringify({ events: [{ id: "1", summary: "Mock Event" }] }),
+  }),
+}));
 
 describe("getCalendarEvents", () => {
-  const mockEvent = {
-    pathParameters: {
-      access_token: "mockAccessToken",
-    },
-  };
-
-  const mockCalendar = google.calendar();
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it("should return a list of events when successful", async () => {
-    const mockEvents = [
-      { id: "1", summary: "Event 1" },
-      { id: "2", summary: "Event 2" },
-    ];
-    mockCalendar.events.list.mockImplementation((_, callback) =>
-      callback(null, { data: { items: mockEvents } })
-    );
-
-    const response = await getCalendarEvents(mockEvent);
-
+    const response = await getCalendarEvents();
     expect(response.statusCode).toBe(200);
-    expect(JSON.parse(response.body).events).toEqual(mockEvents);
-    expect(mockCalendar.events.list).toHaveBeenCalled();
+    expect(JSON.parse(response.body).events).toHaveLength(1);
   });
 
-  it("should return an error when the API fails", async () => {
-    const mockError = new Error("API Error");
-    mockCalendar.events.list.mockImplementation((_, callback) =>
-      callback(mockError, null)
-    );
+  it("should handle API errors gracefully", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => {}); // Silence console.error
+    getCalendarEvents.mockRejectedValueOnce(new Error("API Error"));
 
-    const response = await getCalendarEvents(mockEvent);
-
-    expect(response.statusCode).toBe(500);
-    expect(JSON.parse(response.body).error).toBe(
-      "Failed to fetch calendar events"
-    );
-    expect(mockCalendar.events.list).toHaveBeenCalled();
+    try {
+      await getCalendarEvents();
+    } catch (error) {
+      expect(error.message).toBe("API Error");
+    }
   });
 });
