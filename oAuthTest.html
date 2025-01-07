@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -69,6 +69,33 @@
             document.getElementById(
               "eventsList"
             ).innerHTML = `<ul>${events}</ul>`;
+          });
+      };
+    </script>
+  </body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OAuth Test Server</title>
+  </head>
+  <body>
+    <h1>OAuth Test Server</h1>
+    <h4>Step 1: Get Authorization URL</h4>
+    <button id="getAuthURL">Get Auth URL</button>
+    <p id="authURL"></p>
+    <script>
+      const getAuthURL =
+        "https://afbpzo8aj0.execute-api.us-east-1.amazonaws.com/dev/api/get-auth-url";
+
+      document.getElementById("getAuthURL").onclick = function () {
+        fetch(getAuthURL)
+          .then((response) => response.json())
+          .then((data) => {
+            window.location.href = data.authUrl;
           });
       };
     </script>
