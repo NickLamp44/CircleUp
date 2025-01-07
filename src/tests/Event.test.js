@@ -1,89 +1,43 @@
-import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import mockData from "../mock-data";
 import Event from "../components/Event";
 
-const mockData = [
-  {
-    kind: "calendar#event",
-    etag: '"3181161784712000"',
-    id: "4eahs9ghkhrvkld72hogu9ph3e_20200519T140000Z",
-    status: "confirmed",
-    htmlLink:
-      "https://www.google.com/calendar/event?eid=NGVhaHM5Z2hraHJ2a2xkNzJob2d1OXBoM2VfMjAyMDA1MTlUMTQwMDAwWiBmdWxsc3RhY2t3ZWJkZXZAY2FyZWVyZm91bmRyeS5jb20",
-    created: "2020-05-19T19:17:46.000Z",
-    updated: "2020-05-27T12:01:32.356Z",
-    summary: "Learn JavaScript",
-    description:
-      "Have you wondered how you can ask Google to show you the list of the top ten must-see places in London? And how Google presents you the list? How can you submit the details of an application? Well, JavaScript is doing these. :) \n\nJavascript offers interactivity to a dull, static website. Come, learn JavaScript with us and make those beautiful websites.",
-    location: "London, UK",
-    creator: {
-      email: "fullstackwebdev@careerfoundry.com",
-      self: true,
-    },
-    organizer: {
-      email: "fullstackwebdev@careerfoundry.com",
-      self: true,
-    },
-    start: {
-      dateTime: "2020-05-19T16:00:00+02:00",
-      timeZone: "Europe/Berlin",
-    },
-    end: {
-      dateTime: "2020-05-19T17:00:00+02:00",
-      timeZone: "Europe/Berlin",
-    },
-    recurringEventId: "4eahs9ghkhrvkld72hogu9ph3e",
-    originalStartTime: {
-      dateTime: "2020-05-19T16:00:00+02:00",
-      timeZone: "Europe/Berlin",
-    },
-    iCalUID: "4eahs9ghkhrvkld72hogu9ph3e@google.com",
-    sequence: 0,
-    reminders: {
-      useDefault: true,
-    },
-    eventType: "default",
-  },
-  {
-    id: "1",
-    summary: "Learn JavaScript",
-    location: "London, UK",
-    description: "Learn JavaScript with us.",
-    start: { dateTime: "2020-05-19T16:00:00+02:00" },
-  },
-];
-
 describe("<Event /> component", () => {
-  beforeEach(() => {
-    render(<Event event={mockData[0]} />);
+  test("has summary", () => {
+    const EventComponent = render(<Event event={mockData[0]} />);
+    expect(EventComponent.queryByText(mockData[0].summary)).toBeInTheDocument();
   });
 
-  test("renders the event start time", () => {
-    expect(screen.getByText(/2020-05-19T16:00:00\+02:00/i)).toBeInTheDocument();
-  });
-
-  test("renders event location", () => {
-    expect(screen.getByText(/london, uk/i)).toBeInTheDocument();
-  });
-
-  test("shows the details section when the user clicks 'show details' button", async () => {
-    const user = userEvent.setup();
-    const showDetailsButton = screen.getByText(/show details/i);
-    await user.click(showDetailsButton);
-    expect(screen.getByText(/learn javascript with us./i)).toBeInTheDocument();
-  });
-
-  test("hides the details section when the user clicks 'hide details' button", async () => {
-    const user = userEvent.setup();
-    const showDetailsButton = screen.getByText(/show details/i);
-    await user.click(showDetailsButton);
-
-    const hideDetailsButton = screen.getByText(/hide details/i);
-    await user.click(hideDetailsButton);
-
+  test("has location", () => {
+    const EventComponent = render(<Event event={mockData[0]} />);
     expect(
-      screen.queryByText(/learn javascript with us./i)
-    ).not.toBeInTheDocument();
+      EventComponent.queryByText(mockData[0].location)
+    ).toBeInTheDocument();
+  });
+
+  test("has start time", () => {
+    const EventComponent = render(<Event event={mockData[0]} />);
+    expect(
+      EventComponent.queryByText(mockData[0].start.dateTime)
+    ).toBeInTheDocument();
+  });
+
+  test("has end time", () => {
+    const EventComponent = render(<Event event={mockData[0]} />);
+    expect(
+      EventComponent.queryByText(mockData[0].end.dateTime)
+    ).toBeInTheDocument();
+  });
+
+  test("No details by Default", async () => {
+    const EventComponent = render(<Event event={mockData[0]} />);
+    expect(EventComponent.queryByRole("description")).not.toBeInTheDocument();
+  });
+
+  test("has details because button is clicked", async () => {
+    const EventComponent = render(<Event event={mockData[0]} />);
+    await userEvent.click(EventComponent.queryByRole("button"));
+    expect(EventComponent.queryByRole("description")).toBeInTheDocument();
   });
 });

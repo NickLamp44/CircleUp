@@ -1,13 +1,10 @@
-import React from "react";
+import Event from "./Event";
 
 const EventList = ({ events = [] }) => {
   return (
     <ul id="event-list">
       {events.map((event) => (
-        <li key={event.id} className="event">
-          <h2>{event.title}</h2>
-          <p>{event.location}</p>
-        </li>
+        <Event key={event.id} event={event} />
       ))}
     </ul>
   );
