@@ -1,24 +1,22 @@
-import { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 const CitySearch = ({ allLocations }) => {
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
 
-  useEffect(() => {
-    setSuggestions(allLocations);
-  }, [`${allLocations}`]);
-
-  const handleInputChanged = (event) => {
+  const handleInputChange = (event) => {
     const value = event.target.value;
-    const filteredLocations = allLocations
-      ? allLocations.filter((location) => {
-          return location.toUpperCase().indexOf(value.toUpperCase()) > -1;
-        })
-      : [];
-
     setQuery(value);
-    setSuggestions(filteredLocations);
+    setSuggestions(
+      allLocations.filter((location) =>
+        location.toLowerCase().includes(value.toLowerCase())
+      )
+    );
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setQuery(suggestion); // Set full suggestion text
+    setSuggestions([]); // Clear suggestions
   };
 
   return (
@@ -26,21 +24,21 @@ const CitySearch = ({ allLocations }) => {
       <input
         type="text"
         className="city"
-        placeholder="Search for a city"
         value={query}
-        onFocus={() => setShowSuggestions(true)}
-        onChange={handleInputChanged}
+        onChange={handleInputChange}
+        aria-label="city"
       />
-      {showSuggestions ? (
-        <ul className="suggestions">
-          {suggestions.map((suggestion) => {
-            return <li key={suggestion}>{suggestion}</li>;
-          })}
-          <li key="See all cities">
-            <b>See all cities</b>
+      <ul className="suggestions">
+        {suggestions.map((suggestion, index) => (
+          <li
+            key={index}
+            role="listitem"
+            onClick={() => handleSuggestionClick(suggestion)}
+          >
+            {suggestion}
           </li>
-        </ul>
-      ) : null}
+        ))}
+      </ul>
     </div>
   );
 };

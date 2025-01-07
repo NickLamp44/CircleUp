@@ -1,12 +1,12 @@
-import { render } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import mockData from "../mock-data";
-import Event from "../components/Event";
+import { render, screen } from "@testing-library/react";
 import NumberOfEvents from "../components/NumberOfEvents";
 
 describe("<NumberOfEvents /> component", () => {
-  test("has number of events", () => {
-    const NumberOfEventsComponent = render(<NumberOfEvents />);
-    expect(NumberOfEventsComponent.queryByRole("input")).toBeInTheDocument();
+  test("renders the number of events input field", () => {
+    render(<NumberOfEvents />);
+    const inputElement = screen.getByRole("spinbutton", {
+      name: /number of events/i,
+    });
+    expect(inputElement).toBeInTheDocument();
   });
 });
