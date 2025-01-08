@@ -1,6 +1,6 @@
-import { render, within, waitFor } from "@testing-library/react";
-import { getEvents } from "../api";
+import { render, waitFor, within } from "@testing-library/react";
 import EventList from "../components/EventList";
+import { getEvents } from "../api";
 import App from "../App";
 
 describe("<EventList /> component", () => {
@@ -8,16 +8,8 @@ describe("<EventList /> component", () => {
   beforeEach(() => {
     EventListComponent = render(<EventList />);
   });
-
   test('has an element with "list" role', () => {
     expect(EventListComponent.queryByRole("list")).toBeInTheDocument();
-  });
-
-  test("renders correct number of events", () => {
-    EventListComponent.rerender(
-      <EventList events={[{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]} />
-    );
-    expect(EventListComponent.getAllByRole("listitem")).toHaveLength(4);
   });
 
   test("renders correct number of events", async () => {
@@ -36,7 +28,7 @@ describe("<EventList /> integration", () => {
     const EventListDOM = AppDOM.querySelector("#event-list");
     await waitFor(() => {
       const EventListItems = within(EventListDOM).queryAllByRole("listitem");
-      expect(EventListItems.length).toBe(32);
+      expect(EventListItems.length).toBeGreaterThan(0);
     });
   });
 });

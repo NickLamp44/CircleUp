@@ -1,18 +1,32 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
-const NumberOfEvents = () => {
-  const [number, setNumber] = useState(32); // Default number of events
+const NumberOfEvents = ({ currentNOE, setCurrentNOE, setErrorAlert }) => {
+  const [number, setNumber] = useState(currentNOE);
+
+  const handleInputChanged = (event) => {
+    const value = event.target.value;
+    setNumber(value);
+    if (isNaN(value) || value <= 0) {
+      setErrorAlert("Enter a valid number");
+    } else if (value > 32) {
+      setErrorAlert("Only maximum of 32 is allowed");
+    } else {
+      setErrorAlert("");
+      setCurrentNOE(value);
+    }
+  };
 
   return (
-    <div>
-      <label htmlFor="number-of-events">Number of Events:</label>
-      <input
-        id="number-of-events"
-        type="number"
-        aria-label="number of events"
-        value={number}
-        onChange={(e) => setNumber(e.target.value)}
-      />
+    <div id="number-of-events">
+      <label>
+        Number of Events:
+        <input
+          type="text"
+          value={number}
+          onChange={handleInputChanged}
+          data-testid="numberOfEventsInput"
+        />
+      </label>
     </div>
   );
 };
