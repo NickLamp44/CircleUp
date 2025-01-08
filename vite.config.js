@@ -7,4 +7,5 @@ export default defineConfig({
     open: true,
     port: 5173,
   },
+  root: "./", // Adjust this if your index.html is in a different folder
 });

@@ -1,43 +1,67 @@
-import { render } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import mockData from "../mock-data";
 import Event from "../components/Event";
+import userEvent from "@testing-library/user-event";
+import { render } from "@testing-library/react";
+import mockData from "../mock-data";
+
+const event = mockData[0];
 
 describe("<Event /> component", () => {
-  test("has summary", () => {
-    const EventComponent = render(<Event event={mockData[0]} />);
-    expect(EventComponent.queryByText(mockData[0].summary)).toBeInTheDocument();
+  let EventComponent;
+  beforeEach(() => {
+    EventComponent = render(<Event event={event} />);
   });
 
-  test("has location", () => {
-    const EventComponent = render(<Event event={mockData[0]} />);
-    expect(
-      EventComponent.queryByText(mockData[0].location)
-    ).toBeInTheDocument();
+  test("renders event title", () => {
+    const eventTitle = EventComponent.queryByText(event.summary);
+    expect(eventTitle).toBeInTheDocument();
   });
 
-  test("has start time", () => {
-    const EventComponent = render(<Event event={mockData[0]} />);
-    expect(
-      EventComponent.queryByText(mockData[0].start.dateTime)
-    ).toBeInTheDocument();
+  test("renders event start time", () => {
+    const eventTime = EventComponent.queryByText(event.created);
+    expect(eventTime).toBeInTheDocument();
   });
 
-  test("has end time", () => {
-    const EventComponent = render(<Event event={mockData[0]} />);
-    expect(
-      EventComponent.queryByText(mockData[0].end.dateTime)
-    ).toBeInTheDocument();
+  test("renders event location", () => {
+    const eventLocation = EventComponent.queryByText(event.location);
+    expect(eventLocation).toBeInTheDocument();
   });
 
-  test("No details by Default", async () => {
-    const EventComponent = render(<Event event={mockData[0]} />);
-    expect(EventComponent.queryByRole("description")).not.toBeInTheDocument();
+  // Show Details button
+  test("render event details button", () => {
+    const detailButton = EventComponent.queryByText("Show Details");
+    expect(detailButton).toBeInTheDocument();
   });
 
-  test("has details because button is clicked", async () => {
-    const EventComponent = render(<Event event={mockData[0]} />);
-    await userEvent.click(EventComponent.queryByRole("button"));
-    expect(EventComponent.queryByRole("description")).toBeInTheDocument();
+  // Scenario 1
+  test("event's details are hidden by default", () => {
+    const eventDetails = EventComponent.container.querySelector(".details");
+    expect(eventDetails).not.toBeInTheDocument();
+  });
+
+  // Scenario 2
+  test('show details after user clicks on button "Show Details"', async () => {
+    const user = userEvent.setup();
+
+    const showDetailButton = EventComponent.queryByText("Show Details");
+    await user.click(showDetailButton);
+
+    const eventDetailsDom = EventComponent.container.firstChild;
+    const eventDetails = eventDetailsDom.querySelector(".eventDetails");
+    expect(eventDetails).toBeInTheDocument();
+  });
+
+  // Scenario 3
+  test('hide details after use clicks on button "Hide details', async () => {
+    const user = userEvent.setup();
+
+    const showDetailButton = EventComponent.queryByText("Show Details");
+    await user.click(showDetailButton);
+
+    const hideDetailButton = EventComponent.queryByText("Hide Details");
+    await user.click(hideDetailButton);
+
+    const eventDetailsDom = EventComponent.container.firstChild;
+    const eventDetails = eventDetailsDom.querySelector(".eventDetails");
+    expect(eventDetails).not.toBeInTheDocument();
   });
 });
