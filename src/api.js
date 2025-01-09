@@ -1,97 +1,121 @@
 import mockData from "./mock-data";
 
 /**
- *
- * @param {*} events:
- * The following function should be in the “api.js” file.
- * This function takes an events array, then uses map to create a new array with only locations.
- * It will also remove all duplicates by creating another new array using the spread operator and spreading a Set.
- * The Set will remove all duplicates from the array.
+ * Extracts unique locations from the given events.
+ * @param {Array} events - Array of event objects.
+ * @returns {Array} - Array of unique locations.
  */
 export const extractLocations = (events) => {
   const extractedLocations = events.map((event) => event.location);
-  const locations = [...new Set(extractedLocations)];
-  return locations;
-};
-
-const removeQuery = () => {
-  let newurl;
-  if (window.history.pushState && window.location.pathname) {
-    newurl =
-      window.location.protocol +
-      "//" +
-      window.location.host +
-      window.location.pathname;
-    window.history.pushState("", "", newurl);
-  } else {
-    newurl = window.location.protocol + "//" + window.location.host;
-    window.history.pushState("", "", newurl);
-  }
-};
-
-const checkToken = async (accessToken) => {
-  const response = await fetch(
-    `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`
-  );
-  const result = await response.json();
-  return result;
+  return [...new Set(extractedLocations)];
 };
 
 /**
- *
- * This function will fetch the list of all events
+ * Removes query parameters from the URL.
+ */
+const removeQuery = () => {
+  const { protocol, host, pathname } = window.location;
+  const newUrl = `${protocol}//${host}${pathname}`;
+  window.history.pushState("", "", newUrl);
+};
+
+/**
+ * Verifies the validity of an access token with Google OAuth.
+ * @param {string} accessToken - The access token to verify.
+ * @returns {Promise<Object>} - Token validation response.
+ */
+const checkToken = async (accessToken) => {
+  try {
+    const response = await fetch(
+      `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`
+    );
+    return await response.json();
+  } catch (error) {
+    console.error("Error checking token:", error);
+    return null;
+  }
+};
+
+/**
+ * Fetches events from the API or returns mock data for local development.
+ * @returns {Promise<Array|null>} - Array of events or null if an error occurs.
  */
 export const getEvents = async () => {
-  if (window.location.href.startsWith("http://localhost")) {
-    return mockData;
-  }
-
-  const token = await getAccessToken();
-
-  if (token) {
-    removeQuery();
-    const url =
-      "https://vjep7vx6i2.execute-api.us-east-2.amazonaws.com/dev/api/get-events" +
-      "/" +
-      token;
-    const response = await fetch(url);
-    const result = await response.json();
-    if (result) {
-      return result.events;
-    } else return null;
-  }
-};
-
-const getToken = async (code) => {
-  const encodeCode = encodeURIComponent(code);
-  const response = await fetch(
-    "https://vjep7vx6i2.execute-api.us-east-2.amazonaws.com/dev/api/token" +
-      "/" +
-      encodeCode
-  );
-  const { access_token } = await response.json();
-  access_token && localStorage.setItem("access_token", access_token);
-
-  return access_token;
-};
-
-export const getAccessToken = async () => {
-  const accessToken = localStorage.getItem("access_token");
-  const tokenCheck = accessToken && (await checkToken(accessToken));
-
-  if (!accessToken || tokenCheck.error) {
-    await localStorage.removeItem("access_token");
-    const searchParams = new URLSearchParams(window.location.search);
-    const code = await searchParams.get("code");
-    if (!code) {
-      const response = await fetch(
-        "https://vjep7vx6i2.execute-api.us-east-2.amazonaws.com/dev/api/get-auth-url"
-      );
-      const result = await response.json();
-      const { authUrl } = result;
-      return (window.location.href = authUrl);
+  try {
+    if (window.location.href.startsWith("http://localhost")) {
+      return mockData;
     }
-    return code && getToken(code);
+
+    const token = await getAccessToken();
+    if (token) {
+      removeQuery();
+      const url = `https://afbpzo8aj0.execute-api.us-east-1.amazonaws.com/dev/api/get-events${token}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      return result?.events || null;
+    }
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    return null;
   }
-  return accessToken;
+};
+
+/**
+ * Exchanges an authorization code for an access token.
+ * @param {string} code - The authorization code.
+ * @returns {Promise<string|null>} - The access token or null if an error occurs.
+ */
+const getToken = async (code) => {
+  try {
+    const encodedCode = encodeURIComponent(code);
+    const response = await fetch(
+      `https://afbpzo8aj0.execute-api.us-east-1.amazonaws.com/dev/api/get-access-token${encodedCode}`
+    );
+    const { access_token } = await response.json();
+    if (access_token) {
+      localStorage.setItem("access_token", access_token);
+    }
+    return access_token || null;
+  } catch (error) {
+    console.error("Error getting token:", error);
+    return null;
+  }
+};
+
+/**
+ * Retrieves or requests an access token.
+ * If a valid token is stored, it will be used. Otherwise, it fetches a new one.
+ * @returns {Promise<string|null>} - The access token or null if an error occurs.
+ */
+export const getAccessToken = async () => {
+  try {
+    const accessToken = localStorage.getItem("access_token");
+    const tokenCheck = accessToken && (await checkToken(accessToken));
+
+    if (!accessToken || tokenCheck?.error) {
+      localStorage.removeItem("access_token");
+
+      const searchParams = new URLSearchParams(window.location.search);
+      const code = searchParams.get("code");
+
+      if (!code) {
+        const response = await fetch(
+          "https://afbpzo8aj0.execute-api.us-east-1.amazonaws.com/dev/api/get-auth-url"
+        );
+        const result = await response.json();
+        const { authUrl } = result;
+        if (authUrl) {
+          window.location.href = authUrl;
+        }
+        return null;
+      }
+
+      return await getToken(code);
+    }
+
+    return accessToken;
+  } catch (error) {
+    console.error("Error getting access token:", error);
+    return null;
+  }
 };
