@@ -49,7 +49,7 @@ export const getEvents = async () => {
     const token = await getAccessToken();
     if (token) {
       removeQuery();
-      const url = `https://afbpzo8aj0.execute-api.us-east-1.amazonaws.com/dev/api/get-events${token}`;
+      const url = `https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-events/{access_token}`;
       const response = await fetch(url);
       const result = await response.json();
       return result?.events || null;
@@ -69,7 +69,7 @@ const getToken = async (code) => {
   try {
     const encodedCode = encodeURIComponent(code);
     const response = await fetch(
-      `https://afbpzo8aj0.execute-api.us-east-1.amazonaws.com/dev/api/get-access-token${encodedCode}`
+      `https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-access-token${encodedCode}`
     );
     const { access_token } = await response.json();
     if (access_token) {
@@ -100,7 +100,7 @@ export const getAccessToken = async () => {
 
       if (!code) {
         const response = await fetch(
-          "https://afbpzo8aj0.execute-api.us-east-1.amazonaws.com/dev/api/get-auth-url"
+          "https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-auth-url"
         );
         const result = await response.json();
         const { authUrl } = result;
