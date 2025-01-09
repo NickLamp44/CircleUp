@@ -2,36 +2,54 @@
 
 const { google } = require("googleapis");
 const calendar = google.calendar("v3");
+
+// Scopes for Google Calendar API
 const SCOPES = [
   "https://www.googleapis.com/auth/calendar.events.public.readonly",
 ];
-const { CLIENT_SECRET, CLIENT_ID, CALENDAR_ID } = process.env;
-const redirect_uris = ["https://circle-up-brown.vercel.app"];
 
+// Environment variables
+const { CLIENT_SECRET, CLIENT_ID, CALENDAR_ID, NODE_ENV } = process.env;
+
+// Set redirect URIs dynamically based on the environment
+const redirect_uris =
+  NODE_ENV === "production"
+    ? ["https://circle-up-brown.vercel.app"]
+    : ["http://localhost:3000"];
+
+// Create an OAuth2 client
 const oAuth2Client = new google.auth.OAuth2(
   CLIENT_ID,
   CLIENT_SECRET,
-  redirect_uris[0]
+  redirect_uris[0].trim() // Trim to remove any trailing spaces or characters
 );
+
+// Utility to build a response
+const buildResponse = (statusCode, body) => ({
+  statusCode,
+  headers: {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Credentials": true,
+  },
+  body: JSON.stringify(body),
+});
 
 // getAuthURL function
 module.exports.getAuthURL = async () => {
-  const authUrl = oAuth2Client.generateAuthUrl({
-    access_type: "offline",
-    scope: SCOPES,
-    prompt: "select_account",
-  });
+  try {
+    const authUrl = oAuth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: SCOPES,
+      prompt: "select_account",
+    });
 
-  return {
-    statusCode: 200,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Credentials": true,
-    },
-    body: JSON.stringify({
-      authUrl,
-    }),
-  };
+    console.log("Generated Auth URL:", authUrl);
+
+    return buildResponse(200, { authUrl });
+  } catch (error) {
+    console.error("Error generating Auth URL:", error);
+    return buildResponse(500, { error: "Failed to generate Auth URL." });
+  }
 };
 
 // getAccessToken function
@@ -43,96 +61,51 @@ module.exports.getAccessToken = async (event) => {
     const { code } = JSON.parse(event.body || "{}");
     if (!code) {
       console.error("Missing authorization code in request body.");
-      return {
-        statusCode: 400,
-        headers: { "Access-Control-Allow-Origin": "*" },
-        body: JSON.stringify({ error: "Authorization code is required." }),
-      };
+      return buildResponse(400, { error: "Authorization code is required." });
     }
 
-    // Decode the authorization code
-    const decodedCode = decodeURIComponent(code);
-    console.log("Decoded authorization code:", decodedCode);
-
     // Exchange the authorization code for access tokens
-    const { tokens } = await oAuth2Client.getToken(decodedCode);
+    const { tokens } = await oAuth2Client.getToken(decodeURIComponent(code));
     console.log("Access tokens received:", tokens);
 
-    // Return the tokens in the response
-    return {
-      statusCode: 200,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        expiry_date: tokens.expiry_date,
-      }),
-    };
+    return buildResponse(200, {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expiry_date: tokens.expiry_date,
+    });
   } catch (error) {
     console.error("Error during token exchange:", error);
-
-    // Return an error response
-    return {
-      statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({
-        error: "Failed to exchange authorization code for access token.",
-        details: error.message || "Unknown error occurred.",
-      }),
-    };
+    return buildResponse(500, {
+      error: "Failed to exchange authorization code for access token.",
+      details: error.message || "Unknown error occurred.",
+    });
   }
 };
 
 // getCalendarEvents function
 module.exports.getCalendarEvents = async (event) => {
-  const access_token = event.pathParameters.access_token;
+  try {
+    const access_token = event.pathParameters?.access_token;
+    if (!access_token) {
+      return buildResponse(400, { error: "Access token is required." });
+    }
 
-  oAuth2Client.setCredentials({ access_token });
+    oAuth2Client.setCredentials({ access_token });
 
-  return new Promise((resolve, reject) => {
-    calendar.events.list(
-      {
-        calendarId: CALENDAR_ID, // Google Calendar ID
-        auth: oAuth2Client, // OAuth2 client for authentication
-        timeMin: new Date().toISOString(), // Fetch events starting from now
-        singleEvents: true, // Expand recurring events
-        orderBy: "startTime", // Sort events by start time
-      },
-      (error, response) => {
-        if (error) {
-          reject({
-            statusCode: 500,
-            headers: { "Access-Control-Allow-Origin": "*" },
-            body: JSON.stringify({
-              error: "Failed to fetch calendar events",
-              details: error.message || "Unknown error",
-            }),
-          });
-        } else {
-          resolve(response);
-        }
-      }
-    );
-  })
-    .then((results) => {
-      // When the promise resolves, return the list of events
-      return {
-        statusCode: 200,
-        headers: { "Access-Control-Allow-Origin": "*" },
-        body: JSON.stringify({
-          events: results.data.items, // Return events in the body
-        }),
-      };
-    })
-    .catch((error) => {
-      // Handle any errors
-      return {
-        statusCode: 500,
-        headers: { "Access-Control-Allow-Origin": "*" },
-        body: JSON.stringify({
-          error: "Failed to fetch calendar events",
-          details: error.message || "Unknown error",
-        }),
-      };
+    const { data } = await calendar.events.list({
+      calendarId: CALENDAR_ID,
+      auth: oAuth2Client,
+      timeMin: new Date().toISOString(),
+      singleEvents: true,
+      orderBy: "startTime",
     });
+
+    return buildResponse(200, { events: data.items });
+  } catch (error) {
+    console.error("Error fetching calendar events:", error);
+    return buildResponse(500, {
+      error: "Failed to fetch calendar events.",
+      details: error.message || "Unknown error occurred.",
+    });
+  }
 };
