@@ -1,5 +1,5 @@
 import "./App.css";
-import EventList from "./components/eventList";
+import EventList from "./components/EventList";
 import CitySearch from "./components/citySearch";
 import NumberOfEvents from "./components/numberOfEvents";
 import { useEffect, useState } from "react";
