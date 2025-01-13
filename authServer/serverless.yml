@@ -9,6 +9,9 @@ provider:
     CLIENT_ID: ${file(config.json):CLIENT_ID}
     CLIENT_SECRET: ${file(config.json):CLIENT_SECRET}
     CALENDAR_ID: ${file(config.json):CALENDAR_ID}
+    NODE_ENV: production
+    REDIRECT_URI_PRODUCTION: https://circle-up-brown.vercel.app
+    REDIRECT_URI_LOCAL: http://localhost:3000
 
 functions:
   getAuthURL:
@@ -33,4 +36,11 @@ functions:
       - http:
           path: api/get-events/{access_token}
           method: get
+          cors: true
+  revoke:
+    handler: authServer/revoke.revoke
+    events:
+      - http:
+          path: revoke
+          method: post
           cors: true
