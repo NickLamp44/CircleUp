@@ -22,11 +22,11 @@
 
     <script>
       const getAuthURL =
-        "https://afbpzo8aj0.execute-api.us-east-1.amazonaws.com/dev/api/get-auth-url";
+        "https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-auth-url";
       const getAccessToken =
-        "https://afbpzo8aj0.execute-api.us-east-1.amazonaws.com/dev/api/get-access-token";
+        "https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-access-token";
       const getCalendarEvents =
-        "https://afbpzo8aj0.execute-api.us-east-1.amazonaws.com/dev/api/get-events";
+        "https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-events/{access_token}";
 
       document.getElementById("getAuthURL").onclick = function () {
         fetch(getAuthURL)
