@@ -49,7 +49,7 @@ export const getEvents = async () => {
     const token = await getAccessToken();
     if (token) {
       removeQuery();
-      const url = `https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-events/{access_token}`;
+      const url = `https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-events/${token}`;
       const response = await fetch(url);
       const result = await response.json();
       return result?.events || null;
