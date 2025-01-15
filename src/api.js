@@ -1,19 +1,5 @@
-import express from "express";
-import cors from "cors";
 import mockData from "./mock-data.js";
 
-const app = express();
-
-// Enable CORS for all routes
-app.use(cors());
-
-// Example route
-app.get("/", (req, res) => {
-  res.send("CORS is enabled!");
-});
-
-const PORT = import.meta.env.VITE_PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 /**
  * Extracts unique locations from the given events.
  * @param {Array} events - Array of event objects.
@@ -57,10 +43,8 @@ const checkToken = async (accessToken) => {
 export const getEvents = async () => {
   try {
     const useMockData = import.meta.env.VITE_REACT_APP_USE_MOCK_DATA === "true";
-    console.log(
-      "Mock Data Toggle:",
-      import.meta.env.VITE_REACT_APP_USE_MOCK_DATA
-    );
+    console.log("Mock Data Toggle:", useMockData);
+
     if (useMockData) {
       return mockData;
     }
@@ -88,7 +72,7 @@ const getToken = async (code) => {
   try {
     const encodedCode = encodeURIComponent(code);
     const response = await fetch(
-      `https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-access-token${encodedCode}`
+      `https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-access-token?code=${encodedCode}`
     );
     const { access_token } = await response.json();
     if (access_token) {
@@ -118,14 +102,9 @@ export const getAccessToken = async () => {
       const code = searchParams.get("code");
 
       if (!code) {
-        const response = await fetch(
-          "https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-auth-url"
-        );
-        const result = await response.json();
-        const { authUrl } = result;
-        if (authUrl) {
-          window.location.href = authUrl;
-        }
+        const response = await fetch(`${redirectUri}/dev/api/get-auth-url`);
+        const { authUrl } = await response.json();
+        if (authUrl) window.location.href = authUrl;
         return null;
       }
 
