@@ -1,4 +1,5 @@
 import "./App.css";
+
 import EventList from "./components/eventList";
 import CitySearch from "./components/citySearch";
 import NumberOfEvents from "./components/numberOfEvents";

@@ -1,5 +1,19 @@
-import mockData from "./mock-data";
+import express from "express";
+import cors from "cors";
+import mockData from "./mock-data.js";
 
+const app = express();
+
+// Enable CORS for all routes
+app.use(cors());
+
+// Example route
+app.get("/", (req, res) => {
+  res.send("CORS is enabled!");
+});
+
+const PORT = import.meta.env.VITE_PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 /**
  * Extracts unique locations from the given events.
  * @param {Array} events - Array of event objects.
@@ -42,7 +56,12 @@ const checkToken = async (accessToken) => {
  */
 export const getEvents = async () => {
   try {
-    if (window.location.href.startsWith("http://localhost")) {
+    const useMockData = import.meta.env.VITE_REACT_APP_USE_MOCK_DATA === "true";
+    console.log(
+      "Mock Data Toggle:",
+      import.meta.env.VITE_REACT_APP_USE_MOCK_DATA
+    );
+    if (useMockData) {
       return mockData;
     }
 
