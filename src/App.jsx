@@ -1,3 +1,13 @@
+console.log("Environment Variables Loaded:");
+console.log(
+  "VITE_REDIRECT_URI_PRODUCTION:",
+  import.meta.env.VITE_REDIRECT_URI_PRODUCTION
+);
+console.log(
+  "VITE_REDIRECT_URI_LOCAL:",
+  import.meta.env.VITE_REDIRECT_URI_LOCAL
+);
+
 import React, { useEffect, useState } from "react";
 import EventList from "./components/eventList";
 import CitySearch from "./components/citySearch";

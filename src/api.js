@@ -1,4 +1,7 @@
-console.log("VITE_REDIRECT_URI (loaded):", import.meta.env.VITE_REDIRECT_URI);
+console.log(
+  "VITE_REDIRECT_URI (loaded):",
+  import.meta.env.VITE_REDIRECT_URI_LOCAL
+);
 
 import mockData from "./mock-data.js";
 
@@ -75,7 +78,7 @@ export const getEvents = async () => {
 const getToken = async (code) => {
   console.log("Window location origin:", window.location.origin);
 
-  const redirectURI = import.meta.env.VITE_REDIRECT_URI;
+  const redirectURI = import.meta.env.VITE_REDIRECT_URI_LOCAL;
   if (!redirectURI) {
     console.error("VITE_REDIRECT_URI is not defined.");
     return null;
@@ -103,7 +106,7 @@ const getToken = async (code) => {
  * @returns {Promise<string|null>} - The access token or null if an error occurs.
  */
 export const getAccessToken = async () => {
-  const redirectURI = import.meta.env.VITE_REDIRECT_URI;
+  const redirectURI = import.meta.env.VITE_REDIRECT_URI_LOCAL;
   const searchParams = new URLSearchParams(window.location.search);
   const code = searchParams.get("code");
 

@@ -2,6 +2,7 @@
 
 const { google } = require("googleapis");
 const calendar = google.calendar("v3");
+const fetch = require("node-fetch");
 
 // Scopes for Google Calendar API
 const SCOPES = [
@@ -9,7 +10,14 @@ const SCOPES = [
 ];
 
 // Environment variables
-const { CLIENT_SECRET, CLIENT_ID, CALENDAR_ID, NODE_ENV } = process.env;
+const {
+  CLIENT_SECRET,
+  CLIENT_ID,
+  CALENDAR_ID,
+  NODE_ENV,
+  REDIRECT_URI_PRODUCTION,
+  REDIRECT_URI_LOCAL,
+} = process.env;
 
 // Log environment variables for debugging
 console.log("CLIENT_ID:", CLIENT_ID);
@@ -19,9 +27,7 @@ console.log("NODE_ENV:", NODE_ENV);
 
 // Set redirect URIs dynamically based on the environment
 const redirectURI =
-  NODE_ENV === "production"
-    ? process.env.REDIRECT_URI_PRODUCTION
-    : process.env.REDIRECT_URI_LOCAL;
+  NODE_ENV === "production" ? REDIRECT_URI_PRODUCTION : REDIRECT_URI_LOCAL;
 
 if (!redirectURI) {
   console.error("Redirect URI is missing or undefined!");
@@ -63,6 +69,10 @@ const buildResponse = (statusCode, body, origin = "*") => {
 module.exports.getAuthURL = async (event) => {
   console.log("getAuthURL function started...");
   try {
+    console.log(
+      "Redirect URI during OAuth URL generation:",
+      oAuth2Client.redirectUri
+    );
     const authUrl = oAuth2Client.generateAuthUrl({
       access_type: "offline",
       scope: SCOPES,
@@ -87,8 +97,6 @@ module.exports.getAuthURL = async (event) => {
 };
 
 // getAccessToken function
-const fetch = require("node-fetch");
-
 module.exports.getAccessToken = async (event) => {
   const body = JSON.parse(event.body);
   const code = body.code;
@@ -101,16 +109,17 @@ module.exports.getAccessToken = async (event) => {
   }
 
   const tokenURL = "https://oauth2.googleapis.com/token";
+  const redirect_uri =
+    process.env.NODE_ENV === "production"
+      ? process.env.REDIRECT_URI_PRODUCTION
+      : process.env.REDIRECT_URI_LOCAL;
+  console.log("Redirect URI being sent in token exchange:", redirect_uri);
+
   const params = new URLSearchParams({
     code,
     client_id: process.env.CLIENT_ID,
     client_secret: process.env.CLIENT_SECRET,
-    redirect_uri: console.log(
-      "Redirect URI being used:",
-      process.env.NODE_ENV === "production"
-        ? process.env.REDIRECT_URI_PRODUCTION
-        : process.env.REDIRECT_URI_LOCAL
-    ), // Dynamically choose based on environment
+    redirect_uri: redirect_uri.trim(),
     grant_type: "authorization_code",
   });
 
@@ -130,11 +139,13 @@ module.exports.getAccessToken = async (event) => {
       );
     }
 
+    console.log("Access token response:", result);
     return {
       statusCode: 200,
       body: JSON.stringify({ accessToken: result.access_token }),
     };
   } catch (error) {
+    console.error("Error in getAccessToken function:", error.message);
     return {
       statusCode: 500,
       body: JSON.stringify({
@@ -144,7 +155,6 @@ module.exports.getAccessToken = async (event) => {
     };
   }
 };
-
 // getCalendarEvents function
 module.exports.getCalendarEvents = async (event) => {
   console.log("getCalendarEvents function started...");

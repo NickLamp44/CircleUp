@@ -21,9 +21,7 @@ functions:
           path: api/get-auth-url
           method: get
           cors:
-            origins:
-              - http://localhost:3000
-              - https://circle-up-brown.vercel.app
+            origins: "*"
             headers:
               - Content-Type
               - Authorization
