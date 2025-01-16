@@ -17,28 +17,12 @@ export const extractLocations = (events) => {
 
 /**
  * Removes query parameters from the URL.
+ * This ensures a cleaner URL after processing the query parameters.
  */
 const removeQuery = () => {
   const { protocol, host, pathname } = window.location;
   const newUrl = `${protocol}//${host}${pathname}`;
   window.history.pushState("", "", newUrl);
-};
-
-/**
- * Verifies the validity of an access token with Google OAuth.
- * @param {string} accessToken - The access token to verify.
- * @returns {Promise<Object>} - Token validation response.
- */
-const checkToken = async (accessToken) => {
-  try {
-    const response = await fetch(
-      `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`
-    );
-    return await response.json();
-  } catch (error) {
-    console.error("Error checking token:", error);
-    return null;
-  }
 };
 
 /**
@@ -49,6 +33,7 @@ export const getEvents = async () => {
   console.log("Window location origin:", window.location.origin);
 
   try {
+    // Check if mock data should be used
     const useMockData = import.meta.env.VITE_REACT_APP_USE_MOCK_DATA === "true";
     console.log("Mock Data Toggle:", useMockData);
 
@@ -56,46 +41,22 @@ export const getEvents = async () => {
       return mockData;
     }
 
+    // Retrieve access token
     const token = await getAccessToken();
     if (token) {
-      removeQuery();
+      removeQuery(); // Clean up the URL
       const url = `https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-events/${token}`;
       const response = await fetch(url);
       const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to fetch events.");
+      }
+
       return result?.events || null;
     }
   } catch (error) {
-    console.error("Error fetching events:", error);
-    return null;
-  }
-};
-
-/**
- * Exchanges an authorization code for an access token.
- * @param {string} code - The authorization code.
- * @returns {Promise<string|null>} - The access token or null if an error occurs.
- */
-const getToken = async (code) => {
-  console.log("Window location origin:", window.location.origin);
-
-  const redirectURI = import.meta.env.VITE_REDIRECT_URI_LOCAL;
-  if (!redirectURI) {
-    console.error("VITE_REDIRECT_URI is not defined.");
-    return null;
-  }
-
-  try {
-    const encodedCode = encodeURIComponent(code);
-    const response = await fetch(
-      `${redirectURI}/dev/api/get-access-token?code=${encodedCode}`
-    );
-    const { access_token } = await response.json();
-    if (access_token) {
-      localStorage.setItem("access_token", access_token);
-    }
-    return access_token || null;
-  } catch (error) {
-    console.error("Error getting token:", error);
+    console.error("Error fetching events:", error.message);
     return null;
   }
 };
@@ -112,7 +73,12 @@ export const getAccessToken = async () => {
 
   if (!code) {
     console.error("No 'code' found in the URL.");
-    return null; // Handle gracefully
+    return null;
+  }
+
+  if (!redirectURI) {
+    console.error("VITE_REDIRECT_URI_LOCAL is not defined in the environment.");
+    return null;
   }
 
   try {
@@ -121,11 +87,19 @@ export const getAccessToken = async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code }),
     });
-    if (!response.ok) throw new Error("Failed to fetch access token");
+
     const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Error from token API:", data.error || "Unknown error");
+      return null;
+    }
+
+    console.log("Access token retrieved successfully:", data.accessToken);
+    localStorage.setItem("access_token", data.accessToken); // Store token locally
     return data.accessToken;
   } catch (error) {
-    console.error("Error fetching access token:", error);
+    console.error("Error fetching access token:", error.message);
     return null;
   }
 };
