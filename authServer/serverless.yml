@@ -15,6 +15,7 @@ provider:
 
 functions:
   getAuthURL:
+    timeout: 29
     handler: handler.getAuthURL
     events:
       - http:
@@ -27,6 +28,7 @@ functions:
               - Authorization
 
   getAccessToken:
+    timeout: 29
     handler: handler.getAccessToken
     events:
       - http:
@@ -35,6 +37,7 @@ functions:
           cors: true
 
   getCalendarEvents:
+    timeout: 29
     handler: handler.getCalendarEvents
     events:
       - http:
@@ -43,6 +46,7 @@ functions:
           cors: true
 
   revoke:
+    timeout: 29
     handler: authServer/revoke.revoke
     events:
       - http:
