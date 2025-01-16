@@ -1,3 +1,5 @@
+console.log("VITE_REDIRECT_URI (loaded):", import.meta.env.VITE_REDIRECT_URI);
+
 import mockData from "./mock-data.js";
 
 /**
@@ -41,6 +43,8 @@ const checkToken = async (accessToken) => {
  * @returns {Promise<Array|null>} - Array of events or null if an error occurs.
  */
 export const getEvents = async () => {
+  console.log("Window location origin:", window.location.origin);
+
   try {
     const useMockData = import.meta.env.VITE_REACT_APP_USE_MOCK_DATA === "true";
     console.log("Mock Data Toggle:", useMockData);
@@ -69,10 +73,18 @@ export const getEvents = async () => {
  * @returns {Promise<string|null>} - The access token or null if an error occurs.
  */
 const getToken = async (code) => {
+  console.log("Window location origin:", window.location.origin);
+
+  const redirectURI = import.meta.env.VITE_REDIRECT_URI;
+  if (!redirectURI) {
+    console.error("VITE_REDIRECT_URI is not defined.");
+    return null;
+  }
+
   try {
     const encodedCode = encodeURIComponent(code);
     const response = await fetch(
-      `https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-access-token?code=${encodedCode}`
+      `${redirectURI}/dev/api/get-access-token?code=${encodedCode}`
     );
     const { access_token } = await response.json();
     if (access_token) {
@@ -91,29 +103,26 @@ const getToken = async (code) => {
  * @returns {Promise<string|null>} - The access token or null if an error occurs.
  */
 export const getAccessToken = async () => {
+  const redirectURI = import.meta.env.VITE_REDIRECT_URI;
+  const searchParams = new URLSearchParams(window.location.search);
+  const code = searchParams.get("code");
+
+  if (!code) {
+    console.error("No 'code' found in the URL.");
+    return null; // Handle gracefully
+  }
+
   try {
-    const accessToken = localStorage.getItem("access_token");
-    const tokenCheck = accessToken && (await checkToken(accessToken));
-
-    if (!accessToken || tokenCheck?.error) {
-      localStorage.removeItem("access_token");
-
-      const searchParams = new URLSearchParams(window.location.search);
-      const code = searchParams.get("code");
-
-      if (!code) {
-        const response = await fetch(`${redirectUri}/dev/api/get-auth-url`);
-        const { authUrl } = await response.json();
-        if (authUrl) window.location.href = authUrl;
-        return null;
-      }
-
-      return await getToken(code);
-    }
-
-    return accessToken;
+    const response = await fetch(`${redirectURI}/dev/api/get-access-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    if (!response.ok) throw new Error("Failed to fetch access token");
+    const data = await response.json();
+    return data.accessToken;
   } catch (error) {
-    console.error("Error getting access token:", error);
+    console.error("Error fetching access token:", error);
     return null;
   }
 };
