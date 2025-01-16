@@ -81,7 +81,16 @@ const buildResponse = (statusCode, body, origin = "*") => {
 module.exports.getAuthURL = async (event) => {
   console.log("getAuthURL function started...");
 
+  const redirect_uri =
+    process.env.NODE_ENV === "production"
+      ? process.env.REDIRECT_URI_PRODUCTION
+      : process.env.REDIRECT_URI_LOCAL;
+
+  console.log("Using Redirect URI:", redirect_uri);
+
   try {
+    oAuth2Client.setRedirectUri(redirect_uri);
+
     const authUrl = oAuth2Client.generateAuthUrl({
       access_type: "offline",
       scope: SCOPES,
@@ -93,7 +102,7 @@ module.exports.getAuthURL = async (event) => {
     const origin = event.headers?.origin || "*";
     return buildResponse(200, { authUrl }, origin);
   } catch (error) {
-    console.error("Error in getAuthURL function:", error.message);
+    console.error("Error in getAuthURL:", error.message);
     const origin = event.headers?.origin || "*";
     return buildResponse(
       500,

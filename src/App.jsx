@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import EventList from "./components/eventList";
 import CitySearch from "./components/citySearch";
 import NumberOfEvents from "./components/numberOfEvents";
-import { extractLocations, getEvents } from "./api";
+import { extractLocations } from "./api";
 
 const App = () => {
   const [allEvents, setAllEvents] = useState([]); // All events fetched from API
@@ -57,14 +57,39 @@ const App = () => {
       };
 
       fetchAccessToken();
+    } else {
+      // If no "code", fetch the auth URL and redirect
+      const getAuthUrl = async () => {
+        try {
+          const response = await fetch(
+            "https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-auth-url"
+          );
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch Auth URL: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          console.log("Auth URL response:", data);
+
+          if (data.authUrl) {
+            window.location.href = data.authUrl; // Redirect to Google OAuth
+          } else {
+            throw new Error("Auth URL not received.");
+          }
+        } catch (error) {
+          console.error("Error fetching Auth URL:", error);
+          setAuthError("Failed to retrieve OAuth URL. Please try again later.");
+        }
+      };
+
+      getAuthUrl();
     }
   }, []);
 
   // Step 2: Fetch events using the access token
   useEffect(() => {
-    if (!accessToken) {
-      return; // Only fetch events if we have a valid access token
-    }
+    if (!accessToken) return; // Only fetch events if we have a valid access token
 
     const fetchData = async () => {
       try {
