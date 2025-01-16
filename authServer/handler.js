@@ -81,16 +81,7 @@ const buildResponse = (statusCode, body, origin = "*") => {
 module.exports.getAuthURL = async (event) => {
   console.log("getAuthURL function started...");
 
-  const redirect_uri =
-    process.env.NODE_ENV === "production"
-      ? process.env.REDIRECT_URI_PRODUCTION
-      : process.env.REDIRECT_URI_LOCAL;
-
-  console.log("Using Redirect URI:", redirect_uri);
-
   try {
-    oAuth2Client.setRedirectUri(redirect_uri);
-
     const authUrl = oAuth2Client.generateAuthUrl({
       access_type: "offline",
       scope: SCOPES,
@@ -106,7 +97,7 @@ module.exports.getAuthURL = async (event) => {
     const origin = event.headers?.origin || "*";
     return buildResponse(
       500,
-      { error: "Failed to generate Auth URL. Please try again later." },
+      { error: "Failed to generate Auth URL.", message: error.message },
       origin
     );
   }
