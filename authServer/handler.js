@@ -68,11 +68,20 @@ const buildResponse = (statusCode, body, origin = "*") => {
 // getAuthURL function
 module.exports.getAuthURL = async (event) => {
   console.log("getAuthURL function started...");
+
+  const redirect_uri =
+    process.env.NODE_ENV === "production"
+      ? process.env.REDIRECT_URI_PRODUCTION
+      : process.env.REDIRECT_URI_LOCAL;
+
+  console.log("Redirect URI used in auth URL:", redirect_uri);
+
   try {
     console.log(
       "Redirect URI during OAuth URL generation:",
       oAuth2Client.redirectUri
     );
+
     const authUrl = oAuth2Client.generateAuthUrl({
       access_type: "offline",
       scope: SCOPES,
@@ -80,6 +89,7 @@ module.exports.getAuthURL = async (event) => {
     });
 
     console.log("Generated Auth URL:", authUrl);
+
     const origin = event.headers?.origin || "*";
     return buildResponse(200, { authUrl }, origin);
   } catch (error) {
@@ -87,6 +97,7 @@ module.exports.getAuthURL = async (event) => {
       "Error in getAuthURL function:",
       error.stack || error.message
     );
+
     const origin = event.headers?.origin || "*";
     return buildResponse(
       500,
@@ -113,7 +124,18 @@ module.exports.getAccessToken = async (event) => {
     process.env.NODE_ENV === "production"
       ? process.env.REDIRECT_URI_PRODUCTION
       : process.env.REDIRECT_URI_LOCAL;
-  console.log("Redirect URI being sent in token exchange:", redirect_uri);
+
+  console.log(
+    "Redirect URI being sent in token exchange:",
+    redirect_uri.trim()
+  );
+  console.log("Token exchange request payload:", {
+    code,
+    client_id: process.env.CLIENT_ID,
+    client_secret: process.env.CLIENT_SECRET,
+    redirect_uri: redirect_uri.trim(),
+    grant_type: "authorization_code",
+  });
 
   const params = new URLSearchParams({
     code,
@@ -155,6 +177,7 @@ module.exports.getAccessToken = async (event) => {
     };
   }
 };
+
 // getCalendarEvents function
 module.exports.getCalendarEvents = async (event) => {
   console.log("getCalendarEvents function started...");

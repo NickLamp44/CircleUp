@@ -1,6 +1,10 @@
 console.log(
-  "VITE_REDIRECT_URI (loaded):",
+  "VITE_REDIRECT_URI_LOCAL:",
   import.meta.env.VITE_REDIRECT_URI_LOCAL
+);
+console.log(
+  "VITE_REDIRECT_URI_PRODUCTION:",
+  import.meta.env.VITE_REDIRECT_URI_PRODUCTION
 );
 
 import mockData from "./mock-data.js";
