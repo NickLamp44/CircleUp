@@ -1,13 +1,3 @@
-console.log("Environment Variables Loaded:");
-console.log(
-  "VITE_REDIRECT_URI_PRODUCTION:",
-  import.meta.env.VITE_REDIRECT_URI_PRODUCTION
-);
-console.log(
-  "VITE_REDIRECT_URI_LOCAL:",
-  import.meta.env.VITE_REDIRECT_URI_LOCAL
-);
-
 import React, { useEffect, useState } from "react";
 import EventList from "./components/eventList";
 import CitySearch from "./components/citySearch";
@@ -15,66 +5,93 @@ import NumberOfEvents from "./components/numberOfEvents";
 import { extractLocations, getEvents } from "./api";
 
 const App = () => {
-  const [authError, setAuthError] = useState("");
   const [allEvents, setAllEvents] = useState([]); // All events fetched from API
   const [filteredEvents, setFilteredEvents] = useState([]); // Filtered events based on city
   const [currentNOE, setCurrentNOE] = useState(32); // Number of events to display
   const [allLocations, setAllLocations] = useState([]); // List of all unique locations
   const [currentCity, setCurrentCity] = useState("See all cities"); // Current city filter
   const [errorAlert, setErrorAlert] = useState(""); // Error alert messages
+  const [authError, setAuthError] = useState(""); // OAuth-related error messages
+  const [accessToken, setAccessToken] = useState(""); // OAuth access token
 
-  // Check if code exists in URL and start OAuth if necessary
+  // Step 1: Detect "code" in the URL and exchange it for an access token
   useEffect(() => {
-    const getAuthUrl = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
 
-      if (urlParams.has("code")) {
-        console.log(
-          "Authorization code detected in URL:",
-          urlParams.get("code")
-        );
-        return; // Skip OAuth redirect if code is already present
-      }
+    if (code) {
+      console.log("Authorization code detected in URL:", code);
 
+      const fetchAccessToken = async () => {
+        try {
+          const response = await fetch(
+            "https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-access-token",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ code }),
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`Failed to exchange code: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          console.log("Access Token Response:", data);
+
+          if (data.accessToken) {
+            setAccessToken(data.accessToken); // Save access token for future API calls
+            window.history.replaceState({}, document.title, "/"); // Clean up URL
+          } else {
+            throw new Error("No access token returned.");
+          }
+        } catch (error) {
+          console.error("Error fetching access token:", error);
+          setAuthError(
+            "Failed to retrieve access token. Please try again later."
+          );
+        }
+      };
+
+      fetchAccessToken();
+    }
+  }, []);
+
+  // Step 2: Fetch events using the access token
+  useEffect(() => {
+    if (!accessToken) {
+      return; // Only fetch events if we have a valid access token
+    }
+
+    const fetchData = async () => {
       try {
         const response = await fetch(
-          "https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-auth-url"
+          `https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-events/${accessToken}`
         );
-        const data = await response.json();
 
-        if (data.authUrl) {
-          window.location.href = data.authUrl; // Redirect to Google OAuth
-        } else {
-          setAuthError("Failed to retrieve OAuth URL. Please try again later.");
+        if (!response.ok) {
+          throw new Error(`Failed to fetch events: ${response.statusText}`);
         }
+
+        const data = await response.json();
+        console.log("Events fetched:", data.events);
+
+        setAllEvents(data.events); // Set all events
+        setAllLocations(extractLocations(data.events)); // Extract unique locations
+        setErrorAlert(""); // Clear any previous errors
       } catch (error) {
-        console.error("Error fetching auth URL:", error);
-        setAuthError("An error occurred while starting the OAuth process.");
+        console.error("Error fetching events:", error);
+        setErrorAlert("An error occurred while fetching events.");
       }
     };
 
-    getAuthUrl();
-  }, []);
+    fetchData();
+  }, [accessToken]);
 
-  // Fetch events from the API on mount
-  const fetchData = async () => {
-    try {
-      const events = await getEvents();
-      if (!events) {
-        setErrorAlert("Failed to fetch events. Please try again later.");
-        return;
-      }
-
-      setAllEvents(events);
-      setAllLocations(extractLocations(events));
-      setErrorAlert(""); // Clear error alert
-    } catch (error) {
-      console.error("Error fetching events:", error);
-      setErrorAlert("An error occurred while fetching events.");
-    }
-  };
-
-  // Update `filteredEvents` when `currentCity` or `currentNOE` changes
+  // Step 3: Filter events when city or NOE changes
   useEffect(() => {
     const updateFilteredEvents = () => {
       const eventsToFilter =
@@ -82,20 +99,11 @@ const App = () => {
           ? allEvents
           : allEvents.filter((event) => event.location === currentCity);
 
-      setFilteredEvents(eventsToFilter.slice(0, currentNOE)); // Apply city filter and limit
+      setFilteredEvents(eventsToFilter.slice(0, currentNOE));
     };
 
     updateFilteredEvents();
-  }, [allEvents, currentCity, currentNOE]); // Dependencies
-
-  // Fetch events only after OAuth flow is complete
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-
-    if (urlParams.has("code")) {
-      fetchData();
-    }
-  }, []);
+  }, [allEvents, currentCity, currentNOE]);
 
   return (
     <div className="App">
