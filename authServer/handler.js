@@ -9,23 +9,33 @@ const SCOPES = [
   "https://www.googleapis.com/auth/calendar.events.public.readonly",
 ];
 
-// Environment variables
+// Validate environment variables
+const requiredEnvVars = [
+  "CLIENT_ID",
+  "CLIENT_SECRET",
+  "REDIRECT_URI_PRODUCTION",
+  "REDIRECT_URI_LOCAL",
+  "CALENDAR_ID",
+  "NODE_ENV",
+];
+requiredEnvVars.forEach((varName) => {
+  if (!process.env[varName]) {
+    console.error(`Missing required environment variable: ${varName}`);
+    throw new Error(`Environment variable ${varName} is not set.`);
+  }
+});
+
+// Destructure environment variables
 const {
-  CLIENT_SECRET,
   CLIENT_ID,
-  CALENDAR_ID,
-  NODE_ENV,
+  CLIENT_SECRET,
   REDIRECT_URI_PRODUCTION,
   REDIRECT_URI_LOCAL,
+  CALENDAR_ID,
+  NODE_ENV,
 } = process.env;
 
-// Log environment variables for debugging
-console.log("CLIENT_ID:", CLIENT_ID);
-console.log("CLIENT_SECRET:", CLIENT_SECRET);
-console.log("CALENDAR_ID:", CALENDAR_ID);
-console.log("NODE_ENV:", NODE_ENV);
-
-// Set redirect URIs dynamically based on the environment
+// Determine redirect URI dynamically based on the environment
 const redirectURI =
   NODE_ENV === "production" ? REDIRECT_URI_PRODUCTION : REDIRECT_URI_LOCAL;
 
@@ -34,9 +44,13 @@ if (!redirectURI) {
   throw new Error("Redirect URI is required but not set.");
 }
 
+console.log("Environment variables loaded:");
+console.log("CLIENT_ID:", CLIENT_ID);
+console.log("CLIENT_SECRET:", CLIENT_SECRET ? "****" : "Not Set");
+console.log("NODE_ENV:", NODE_ENV);
 console.log("Redirect URI:", redirectURI);
 
-// Create an OAuth2 client
+// Initialize the OAuth2 client
 const oAuth2Client = new google.auth.OAuth2(
   CLIENT_ID,
   CLIENT_SECRET,
@@ -49,9 +63,7 @@ const buildResponse = (statusCode, body, origin = "*") => {
     "http://localhost:3000",
     "https://circle-up-brown.vercel.app",
   ];
-
   const responseOrigin = allowedOrigins.includes(origin) ? origin : "*";
-
   return {
     statusCode,
     headers: {
@@ -65,24 +77,11 @@ const buildResponse = (statusCode, body, origin = "*") => {
   };
 };
 
-// getAuthURL function
+// Function to generate the Google Auth URL
 module.exports.getAuthURL = async (event) => {
   console.log("getAuthURL function started...");
 
-  // Determine redirect URI based on environment
-  const redirect_uri =
-    process.env.NODE_ENV === "production"
-      ? process.env.REDIRECT_URI_PRODUCTION
-      : process.env.REDIRECT_URI_LOCAL;
-
-  console.log("Redirect URI used in auth URL:", redirect_uri);
-
   try {
-    // Ensure oAuth2Client has the correct redirectUri
-    oAuth2Client.setRedirectUri(redirect_uri); // Assuming oAuth2Client is properly initialized
-    console.log("Redirect URI set in OAuth2Client:", oAuth2Client.redirectUri);
-
-    // Generate Auth URL
     const authUrl = oAuth2Client.generateAuthUrl({
       access_type: "offline",
       scope: SCOPES,
@@ -91,16 +90,10 @@ module.exports.getAuthURL = async (event) => {
 
     console.log("Generated Auth URL:", authUrl);
 
-    // Return response with the generated URL
     const origin = event.headers?.origin || "*";
     return buildResponse(200, { authUrl }, origin);
   } catch (error) {
-    // Log and return error response
-    console.error(
-      "Error in getAuthURL function:",
-      error.stack || error.message
-    );
-
+    console.error("Error in getAuthURL function:", error.message);
     const origin = event.headers?.origin || "*";
     return buildResponse(
       500,
@@ -110,85 +103,61 @@ module.exports.getAuthURL = async (event) => {
   }
 };
 
-// getAccessToken function
+// Function to exchange the code for an access token
 module.exports.getAccessToken = async (event) => {
-  const body = JSON.parse(event.body);
-  const code = body.code;
-
-  if (!code) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ message: "Missing 'code' parameter" }),
-    };
-  }
-
-  const tokenURL = "https://oauth2.googleapis.com/token";
-  const redirect_uri =
-    process.env.NODE_ENV === "production"
-      ? process.env.REDIRECT_URI_PRODUCTION
-      : process.env.REDIRECT_URI_LOCAL;
-
-  console.log(
-    "Redirect URI being sent in token exchange:",
-    redirect_uri.trim()
-  );
-  console.log("Token exchange request payload:", {
-    code,
-    client_id: process.env.CLIENT_ID,
-    client_secret: process.env.CLIENT_SECRET,
-    redirect_uri: redirect_uri.trim(),
-    grant_type: "authorization_code",
-  });
-
-  const params = new URLSearchParams({
-    code,
-    client_id: process.env.CLIENT_ID,
-    client_secret: process.env.CLIENT_SECRET,
-    redirect_uri: redirect_uri.trim(),
-    grant_type: "authorization_code",
-  });
+  console.log("getAccessToken function started...");
 
   try {
-    const response = await fetch(tokenURL, {
+    const body = JSON.parse(event.body);
+    const code = body.code;
+
+    if (!code) {
+      return buildResponse(400, { error: "Missing 'code' parameter." });
+    }
+
+    const params = new URLSearchParams({
+      code,
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET,
+      redirect_uri: redirectURI.trim(),
+      grant_type: "authorization_code",
+    });
+
+    const response = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: params,
+      body: params.toString(),
     });
 
     const result = await response.json();
 
     if (!response.ok) {
-      console.error("Google API error:", result); // Log error to CloudWatch
+      console.error("Google API token exchange error:", result);
       throw new Error(
         result.error || "Failed to exchange code for access token"
       );
     }
 
     console.log("Access token response:", result);
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ accessToken: result.access_token }),
-    };
+    return buildResponse(200, { accessToken: result.access_token });
   } catch (error) {
     console.error("Error in getAccessToken function:", error.message);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        message: "Error exchanging code for token",
-        error: error.message,
-      }),
-    };
+    return buildResponse(500, {
+      error: "Error exchanging code for token.",
+      message: error.message,
+    });
   }
 };
 
-// getCalendarEvents function
+// Function to fetch calendar events
 module.exports.getCalendarEvents = async (event) => {
   console.log("getCalendarEvents function started...");
+
   try {
     const access_token = event.pathParameters?.access_token;
+
     if (!access_token) {
-      const origin = event.headers?.origin || "*";
-      return buildResponse(400, { error: "Access token is required." }, origin);
+      return buildResponse(400, { error: "Access token is required." });
     }
 
     oAuth2Client.setCredentials({ access_token });
@@ -202,44 +171,33 @@ module.exports.getCalendarEvents = async (event) => {
     });
 
     console.log("Fetched calendar events:", data.items);
-    const origin = event.headers?.origin || "*";
-    return buildResponse(200, { events: data.items }, origin);
+
+    return buildResponse(200, { events: data.items });
   } catch (error) {
-    console.error(
-      "Error in getCalendarEvents function:",
-      error.stack || error.message
-    );
-    const origin = event.headers?.origin || "*";
-    return buildResponse(
-      500,
-      { error: "Failed to fetch calendar events." },
-      origin
-    );
+    console.error("Error in getCalendarEvents function:", error.message);
+    return buildResponse(500, {
+      error: "Failed to fetch calendar events.",
+      message: error.message,
+    });
   }
 };
 
-// revokeTokens function
+// Function to revoke OAuth tokens
 module.exports.revokeTokens = async (event) => {
   console.log("revokeTokens function started...");
+
   try {
     await oAuth2Client.revokeCredentials();
     console.log("OAuth credentials successfully revoked.");
-    const origin = event.headers?.origin || "*";
-    return buildResponse(
-      200,
-      { message: "OAuth credentials successfully revoked." },
-      origin
-    );
+
+    return buildResponse(200, {
+      message: "OAuth credentials successfully revoked.",
+    });
   } catch (error) {
-    console.error(
-      "Error in revokeTokens function:",
-      error.stack || error.message
-    );
-    const origin = event.headers?.origin || "*";
-    return buildResponse(
-      500,
-      { error: "Failed to revoke credentials." },
-      origin
-    );
+    console.error("Error in revokeTokens function:", error.message);
+    return buildResponse(500, {
+      error: "Failed to revoke credentials.",
+      message: error.message,
+    });
   }
 };
