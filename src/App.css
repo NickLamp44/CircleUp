@@ -1,4 +1,3 @@
-@import url(https://fonts.googleapis.com/css?family=Roboto:500);
 .App {
   text-align: center;
   padding: 2% 5%;
@@ -31,7 +30,8 @@ input[type="number"] {
 }
 
 .city {
-  width: 250px;
+  width: 100%; /* Adjust for responsiveness */
+  max-width: 250px;
 }
 
 #city-search {
@@ -42,7 +42,8 @@ input[type="number"] {
 }
 
 .suggestions {
-  width: 250px;
+  width: 100%;
+  max-width: 250px;
   position: absolute;
   top: 45px;
   z-index: 2;
@@ -59,17 +60,8 @@ input[type="number"] {
   cursor: default;
 }
 
-.suggestions > li:last-child {
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
-}
-
-.suggestions > li:hover {
-  background-color: #bcdcdb;
-}
-
 .event {
-  padding: 10px 10px 35px;
+  padding: 10px;
   margin-bottom: 10px;
   text-align: left;
   border: 1px solid #ccc;

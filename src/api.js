@@ -1,77 +1,70 @@
-console.log(
-  "VITE_REDIRECT_URI_LOCAL:",
-  import.meta.env.VITE_REDIRECT_URI_LOCAL
-);
-console.log(
-  "VITE_REDIRECT_URI_PRODUCTION:",
-  import.meta.env.VITE_REDIRECT_URI_PRODUCTION
-);
-
+// File: src/api.js
 import mockData from "./mock-data.js";
 
-/**
- * Extracts unique locations from the given events.
- * @param {Array} events - Array of event objects.
- * @returns {Array} - Array of unique locations.
- */
+export const logEnvironmentVariables = () => {
+  console.log("Environment Variables:");
+  console.log(
+    "VITE_REDIRECT_URI_LOCAL:",
+    getEnvVariable("VITE_REDIRECT_URI_LOCAL")
+  );
+  console.log(
+    "VITE_REDIRECT_URI_PRODUCTION:",
+    getEnvVariable("VITE_REDIRECT_URI_PRODUCTION")
+  );
+  console.log(
+    "VITE_REACT_APP_USE_MOCK_DATA:",
+    getEnvVariable("VITE_REACT_APP_USE_MOCK_DATA")
+  );
+};
+
+export const getEnvVariable = (key) => {
+  if (typeof process !== "undefined" && process.env) {
+    return process.env[key];
+  }
+  return undefined;
+};
+
 export const extractLocations = (events) => {
-  const extractedLocations = events.map((event) => event.location);
-  return [...new Set(extractedLocations)];
+  return [...new Set(events.map((event) => event.location))];
 };
 
-/**
- * Removes query parameters from the URL.
- * This ensures a cleaner URL after processing the query parameters.
- */
-const removeQuery = () => {
-  const { protocol, host, pathname } = window.location;
-  const newUrl = `${protocol}//${host}${pathname}`;
-  window.history.pushState("", "", newUrl);
-};
-
-/**
- * Fetches events from the API or returns mock data for local development.
- * @returns {Promise<Array|null>} - Array of events or null if an error occurs.
- */
 export const getEvents = async () => {
-  console.log("Window location origin:", window.location.origin);
-
   try {
-    // Check if mock data should be used
+    // Check environment variable
     const useMockData = import.meta.env.VITE_REACT_APP_USE_MOCK_DATA === "true";
-    console.log("Mock Data Toggle:", useMockData);
+    console.log("Using Mock Data:", useMockData);
 
+    // Use mock data if the flag is set
     if (useMockData) {
-      return mockData;
+      console.log("Returning mock data:", mockData);
+      return mockData; // Mock data should be returned here
     }
 
-    // Retrieve access token
+    // Otherwise, fetch real events using API
     const token = await getAccessToken();
-    if (token) {
-      removeQuery(); // Clean up the URL
-      const url = `https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-events/${token}`;
-      const response = await fetch(url);
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to fetch events.");
-      }
-
-      return result?.events || null;
+    if (!token) {
+      console.error("Authorization token is missing.");
+      throw new Error("Authorization token is missing.");
     }
+
+    const url = `https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-events/${token}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      const result = await response.json();
+      throw new Error(result.error || "Failed to fetch events from API.");
+    }
+
+    const result = await response.json();
+    return result?.events || [];
   } catch (error) {
-    console.error("Error fetching events:", error.message);
+    console.error("Error in getEvents:", error.message);
     return null;
   }
 };
 
-/**
- * Retrieves or requests an access token.
- * If a valid token is stored, it will be used. Otherwise, it fetches a new one.
- * @returns {Promise<string|null>} - The access token or null if an error occurs.
- */
 export const getAccessToken = async () => {
-  const redirectURI = import.meta.env.VITE_REDIRECT_URI_LOCAL;
+  const redirectURI = getEnvVariable("VITE_REDIRECT_URI_LOCAL");
   const searchParams = new URLSearchParams(window.location.search);
   const code = searchParams.get("code");
 
@@ -92,18 +85,19 @@ export const getAccessToken = async () => {
       body: JSON.stringify({ code }),
     });
 
-    const data = await response.json();
-
     if (!response.ok) {
-      console.error("Error from token API:", data.error || "Unknown error");
-      return null;
+      const data = await response.json();
+      throw new Error(data.error || "Failed to fetch access token.");
     }
 
-    console.log("Access token retrieved successfully:", data.accessToken);
-    localStorage.setItem("access_token", data.accessToken); // Store token locally
+    const data = await response.json();
+    localStorage.setItem("access_token", data.accessToken);
     return data.accessToken;
   } catch (error) {
     console.error("Error fetching access token:", error.message);
     return null;
   }
 };
+
+// Log environment variables
+logEnvironmentVariables();
