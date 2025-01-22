@@ -4,6 +4,31 @@ import CitySearch from "../components/citySearch";
 import { extractLocations, getEvents } from "../api";
 import App from "../App";
 
+// Mock event data
+const mockEvents = [
+  {
+    id: "1",
+    summary: "Event 1",
+    location: "Berlin, Germany",
+    description: "Description of Event 1",
+  },
+  {
+    id: "2",
+    summary: "Event 2",
+    location: "London, UK",
+    description: "Description of Event 2",
+  },
+];
+
+// Mock location extraction
+const mockLocations = ["Berlin, Germany", "London, UK"];
+
+// Mock the API module
+jest.mock("../api", () => ({
+  getEvents: jest.fn(() => Promise.resolve(mockEvents)),
+  extractLocations: jest.fn(() => mockLocations),
+}));
+
 describe("<CitySearch /> component", () => {
   let CitySearchComponent;
   beforeEach(() => {
@@ -84,14 +109,26 @@ describe("<CitySearch /> integration", () => {
     const AppDOM = AppComponent.container.firstChild;
 
     const CitySearchDOM = AppDOM.querySelector("#city-search");
-    const cityTextBox = within(CitySearchDOM).queryByRole("textbox");
+    const cityTextBox =
+      within(CitySearchDOM).getByPlaceholderText("Search for a city");
+
+    // Simulate a user clicking the input
     await user.click(cityTextBox);
 
     const allEvents = await getEvents();
     const allLocations = extractLocations(allEvents);
 
+    // Log the props and verify suggestions
+    console.log("CitySearch Props allLocations:", allLocations);
+
     const suggestionListItems =
       within(CitySearchDOM).queryAllByRole("listitem");
-    expect(suggestionListItems.length).toBe(allLocations.length + 1);
+
+    console.log(
+      "Rendered Suggestions:",
+      suggestionListItems.map((item) => item.textContent)
+    );
+
+    expect(suggestionListItems.length).toBe(allLocations.length + 1); // +1 for "See all cities"
   });
 });

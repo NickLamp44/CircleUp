@@ -1,148 +1,96 @@
-import React, { useEffect, useState } from "react";
-import EventList from "./components/eventList";
+// File: src/App.jsx
+import React, { Component } from "react";
+import { InfoAlert, WarningAlert, ErrorAlert } from "./components/alert";
 import CitySearch from "./components/citySearch";
+import EventList from "./components/eventList";
 import NumberOfEvents from "./components/numberOfEvents";
-import { extractLocations } from "./api";
+import { getEvents, extractLocations } from "./api";
 
-const App = () => {
-  const [allEvents, setAllEvents] = useState([]); // All events fetched from API
-  const [filteredEvents, setFilteredEvents] = useState([]); // Filtered events based on city
-  const [currentNOE, setCurrentNOE] = useState(32); // Number of events to display
-  const [allLocations, setAllLocations] = useState([]); // List of all unique locations
-  const [currentCity, setCurrentCity] = useState("See all cities"); // Current city filter
-  const [errorAlert, setErrorAlert] = useState(""); // Error alert messages
-  const [authError, setAuthError] = useState(""); // OAuth-related error messages
-  const [accessToken, setAccessToken] = useState(""); // OAuth access token
+class App extends Component {
+  state = {
+    allLocations: [],
+    currentNOE: 32,
+    events: [],
+    filteredEvents: [],
+    currentCity: "See all cities",
+    infoAlert: "",
+    warningAlert: "",
+    errorAlert: "",
+  };
 
-  // Step 1: Detect "code" in the URL and exchange it for an access token
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get("code");
+  fetchEvents = async () => {
+    try {
+      const events = await getEvents();
 
-    if (code) {
-      console.log("Authorization code detected in URL:", code);
-
-      const fetchAccessToken = async () => {
-        try {
-          const response = await fetch(
-            "https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-access-token",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ code }),
-            }
-          );
-
-          if (!response.ok) {
-            throw new Error(`Failed to exchange code: ${response.statusText}`);
-          }
-
-          const data = await response.json();
-          console.log("Access Token Response:", data);
-
-          if (data.accessToken) {
-            setAccessToken(data.accessToken); // Save access token for future API calls
-            window.history.replaceState({}, document.title, "/"); // Clean up URL
-          } else {
-            throw new Error("No access token returned.");
-          }
-        } catch (error) {
-          console.error("Error fetching access token:", error);
-          setAuthError(
-            "Failed to retrieve access token. Please try again later."
-          );
-        }
-      };
-
-      fetchAccessToken();
-    } else {
-      // If no "code", fetch the auth URL and redirect
-      const getAuthUrl = async () => {
-        try {
-          const response = await fetch(
-            "https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-auth-url"
-          );
-
-          if (!response.ok) {
-            throw new Error(`Failed to fetch Auth URL: ${response.statusText}`);
-          }
-
-          const data = await response.json();
-          console.log("Auth URL response:", data);
-
-          if (data.authUrl) {
-            window.location.href = data.authUrl; // Redirect to Google OAuth
-          } else {
-            throw new Error("Auth URL not received.");
-          }
-        } catch (error) {
-          console.error("Error fetching Auth URL:", error);
-          setAuthError("Failed to retrieve OAuth URL. Please try again later.");
-        }
-      };
-
-      getAuthUrl();
-    }
-  }, []);
-
-  // Step 2: Fetch events using the access token
-  useEffect(() => {
-    if (!accessToken) return; // Only fetch events if we have a valid access token
-
-    const fetchData = async () => {
-      try {
-        const response = await fetch(
-          `https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-events/${accessToken}`
-        );
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch events: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log("Events fetched:", data.events);
-
-        setAllEvents(data.events); // Set all events
-        setAllLocations(extractLocations(data.events)); // Extract unique locations
-        setErrorAlert(""); // Clear any previous errors
-      } catch (error) {
-        console.error("Error fetching events:", error);
-        setErrorAlert("An error occurred while fetching events.");
+      if (!events || events.length === 0) {
+        throw new Error("No events found. Verify mock data or API response.");
       }
-    };
 
-    fetchData();
-  }, [accessToken]);
+      this.setState({
+        events,
+        allLocations: extractLocations(events),
+        filteredEvents: events,
+        errorAlert: "",
+      });
+    } catch (error) {
+      console.error("Error fetching events:", error.message);
+      this.setErrorAlert(
+        error.message || "An error occurred while fetching events."
+      );
+    }
+  };
 
-  // Step 3: Filter events when city or NOE changes
-  useEffect(() => {
-    const updateFilteredEvents = () => {
-      const eventsToFilter =
-        currentCity === "See all cities"
-          ? allEvents
-          : allEvents.filter((event) => event.location === currentCity);
+  componentDidMount() {
+    this.fetchEvents();
+  }
 
-      setFilteredEvents(eventsToFilter.slice(0, currentNOE));
-    };
+  setCurrentCity = (city) => {
+    const { events } = this.state;
 
-    updateFilteredEvents();
-  }, [allEvents, currentCity, currentNOE]);
+    this.setState({
+      currentCity: city,
+      filteredEvents:
+        city === "See all cities"
+          ? events
+          : events.filter((event) => event.location === city),
+    });
+  };
 
-  return (
-    <div className="App">
-      {authError && <div className="alert">{authError}</div>}
-      <CitySearch allLocations={allLocations} setCurrentCity={setCurrentCity} />
-      <NumberOfEvents
-        setErrorAlert={setErrorAlert}
-        currentNOE={currentNOE}
-        setCurrentNOE={setCurrentNOE}
-      />
-      {errorAlert && <div className="alert">{errorAlert}</div>}
-      <EventList events={filteredEvents} />
-    </div>
-  );
-};
+  setInfoAlert = (message) => this.setState({ infoAlert: message });
+  setWarningAlert = (message) => this.setState({ warningAlert: message });
+  setErrorAlert = (message) => this.setState({ errorAlert: message });
+
+  render() {
+    const {
+      allLocations,
+      currentNOE,
+      filteredEvents,
+      infoAlert,
+      warningAlert,
+      errorAlert,
+    } = this.state;
+
+    return (
+      <div className="App">
+        <div className="alerts-container">
+          <InfoAlert message={infoAlert} />
+          <WarningAlert message={warningAlert} />
+          <ErrorAlert message={errorAlert} />
+        </div>
+        <CitySearch
+          allLocations={allLocations}
+          setCurrentCity={this.setCurrentCity}
+          setInfoAlert={this.setInfoAlert}
+        />
+        <NumberOfEvents
+          currentNOE={currentNOE}
+          setCurrentNOE={(number) => this.setState({ currentNOE: number })}
+          setErrorAlert={this.setErrorAlert}
+        />
+        <EventList events={filteredEvents} />
+      </div>
+    );
+  }
+}
 
 export default App;
