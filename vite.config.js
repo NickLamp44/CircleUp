@@ -22,6 +22,9 @@ export default defineConfig(({ mode }) => {
 
     build: {
       outDir: "dist",
+      rollupOptions: {
+        external: ["bootstrap/dist/css/bootstrap.min.css"],
+      },
     },
   };
 });
