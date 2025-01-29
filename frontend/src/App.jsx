@@ -3,7 +3,7 @@ import { InfoAlert, WarningAlert, ErrorAlert } from "./components/alert";
 import CitySearch from "./components/citySearch";
 import EventList from "./components/eventList";
 import NumberOfEvents from "./components/numberOfEvents";
-import { getEvents, extractLocations } from "./api";
+import { getAccessToken, getEvents, extractLocations } from "./api";
 
 class App extends Component {
   state = {
@@ -17,10 +17,22 @@ class App extends Component {
     errorAlert: "",
   };
 
+  async componentDidMount() {
+    await this.handleAuthentication();
+    this.fetchEvents();
+  }
+
+  handleAuthentication = async () => {
+    const token = await getAccessToken();
+    if (!token) {
+      console.log("Redirecting to Google OAuth...");
+      window.location.href = "/api/get-auth-url"; // Adjust based on your setup
+    }
+  };
+
   fetchEvents = async () => {
     try {
       const events = await getEvents();
-
       if (!events || events.length === 0) {
         throw new Error("No events found. Verify mock data or API response.");
       }
@@ -39,13 +51,8 @@ class App extends Component {
     }
   };
 
-  componentDidMount() {
-    this.fetchEvents();
-  }
-
   setCurrentCity = (city) => {
     const { events } = this.state;
-
     this.setState({
       currentCity: city,
       filteredEvents:
