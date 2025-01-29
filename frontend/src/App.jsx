@@ -1,4 +1,3 @@
-// File: src/App.jsx
 import React, { Component } from "react";
 import { InfoAlert, WarningAlert, ErrorAlert } from "./components/alert";
 import CitySearch from "./components/citySearch";
