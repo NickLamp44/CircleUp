@@ -1,3 +1,5 @@
+// Number Of Events Component
+
 import React, { Component } from "react";
 
 class NumberOfEvents extends Component {
