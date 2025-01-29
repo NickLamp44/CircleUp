@@ -1,6 +1,6 @@
-const { getCalendarEvents } = require("../../authServer/handler");
+const { getCalendarEvents } = require("../authServer/handler");
 
-jest.mock("../../authServer/handler", () => ({
+jest.mock("../authServer/handler", () => ({
   getCalendarEvents: jest.fn().mockResolvedValue({
     statusCode: 200,
     body: JSON.stringify({ events: [{ id: "1", summary: "Mock Event" }] }),
