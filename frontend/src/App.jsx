@@ -29,12 +29,17 @@ class App extends Component {
   }
 
   handleAuthentication = async () => {
-    const token = await getAccessToken();
-    if (!token) {
-      console.log("Redirecting to Google OAuth...");
-      window.location.href = await getAuthUrl(); // Adjust based on your setup
+    debugger;
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        console.log("Redirecting to Google OAuth...");
+        window.location.href = await getAuthUrl(); // Adjust based on your setup
+      }
+      return token;
+    } catch (error) {
+      window.alert("An error occurred while fetching the access token.", error);
     }
-    return token;
   };
 
   fetchEvents = async (token) => {

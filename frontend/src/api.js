@@ -1,5 +1,5 @@
 import mockData from "./mock-data.js";
-
+const one_aws_proxy = "https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com";
 // Utility function for environment variable fetching
 export const getEnvVariable = (key) => {
   return import.meta.env[key] || process.env[key] || undefined;
@@ -16,7 +16,7 @@ export const getAuthUrl = async () => {
   return data.authUrl;
 };
 export const getAccessToken = async () => {
-  //debugger;
+  debugger;
   const token = localStorage.getItem("access_token");
 
   // If a token is present, return it (could implement expiry checks here)
@@ -44,28 +44,22 @@ export const getAccessToken = async () => {
     return null;
   }
 
-  try {
-    console.log("Fetching access token from AWS...");
-    const aws_token_proxy =
-      "https://snjcy6ziohhllwncvuk5tqyxri0gzsxh.lambda-url.us-east-1.on.aws/";
-    const response = await fetch(`${aws_token_proxy}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
-    });
+  console.log("Fetching access token from AWS...");
+  const aws_token_proxy = `${one_aws_proxy}/dev/api/get-access-token`;
+  const response = await fetch(`${aws_token_proxy}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
 
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || "Failed to fetch access token.");
-    }
-    console.log("Access token fetched successfully.");
+  if (!response.ok) {
     const data = await response.json();
-    localStorage.setItem("access_token", data.accessToken);
-    return data.accessToken;
-  } catch (error) {
-    console.error("Error fetching access token:", error.message);
-    return null;
+    throw new Error(data.error || "Failed to fetch access token.");
   }
+  console.log("Access token fetched successfully.");
+  const data = await response.json();
+  localStorage.setItem("access_token", data.accessToken);
+  return data.accessToken;
 };
 
 export const getEvents = async (token) => {
@@ -81,7 +75,7 @@ export const getEvents = async (token) => {
       throw new Error("Authorization token is missing.");
     }
 
-    const url = `https://s8f26mlb4a.execute-api.us-east-1.amazonaws.com/dev/api/get-events/${token}`;
+    const url = `${one_aws_proxy}/dev/api/get-events/${token}`;
     const response = await fetch(url);
 
     if (!response.ok) {
