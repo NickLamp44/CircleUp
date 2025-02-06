@@ -3,7 +3,7 @@ import { InfoAlert, WarningAlert, ErrorAlert } from "./components/alert";
 import CitySearch from "./components/citySearch";
 import EventList from "./components/eventList";
 import NumberOfEvents from "./components/numberOfEvents";
-import { getAccessToken, getEvents, extractLocations } from "./api";
+import { getAccessToken, getEvents, extractLocations, getAuthUrl } from "./api";
 
 class App extends Component {
   state = {
@@ -26,7 +26,7 @@ class App extends Component {
     const token = await getAccessToken();
     if (!token) {
       console.log("Redirecting to Google OAuth...");
-      window.location.href = "/api/get-auth-url"; // Adjust based on your setup
+      window.location.href = await getAuthUrl(); // Adjust based on your setup
     }
   };
 

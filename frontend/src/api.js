@@ -8,7 +8,13 @@ export const getEnvVariable = (key) => {
 export const extractLocations = (events) => {
   return [...new Set(events.map((event) => event.location))];
 };
-
+export const getAuthUrl = async () => {
+  let aws_proxy =
+    "https://ex3tscbdi5lgo7r34pwq2526zm0mumsr.lambda-url.us-east-1.on.aws/";
+  let response = await fetch(aws_proxy);
+  let data = await response.json();
+  return data.authUrl;
+};
 export const getAccessToken = async () => {
   const token = localStorage.getItem("access_token");
 
