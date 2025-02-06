@@ -3,6 +3,8 @@ import { InfoAlert, WarningAlert, ErrorAlert } from "./components/alert";
 import CitySearch from "./components/citySearch";
 import EventList from "./components/eventList";
 import NumberOfEvents from "./components/numberOfEvents";
+import EventGenresChart from "./components/eventGenresChart";
+
 import {
   getAccessToken,
   getEvents,
@@ -106,6 +108,7 @@ class App extends Component {
           setErrorAlert={this.setErrorAlert}
         />
         <EventList events={filteredEvents} />
+        <EventGenresChart allLocations={allLocations} events={filteredEvents} />
       </div>
     );
   }
