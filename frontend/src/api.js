@@ -16,10 +16,17 @@ export const getAuthUrl = async () => {
   return data.authUrl;
 };
 export const getAccessToken = async () => {
+  //debugger;
   const token = localStorage.getItem("access_token");
 
   // If a token is present, return it (could implement expiry checks here)
-  if (token) return token;
+  if (token) {
+    console.log("Access token found in localStorage.");
+    return token;
+  }
+  console.log(
+    "Access token not found in localStorage, retrieve from aws function."
+  );
 
   // Determine correct redirect URI
   const redirectURI =
@@ -31,12 +38,17 @@ export const getAccessToken = async () => {
   const code = searchParams.get("code");
 
   if (!code) {
-    console.error("No 'code' found in the URL.");
+    console.error(
+      "No 'code' found in the URL. Cannot retrieve acccess token. Reauthenticating..."
+    );
     return null;
   }
 
   try {
-    const response = await fetch(`${redirectURI}/api/get-access-token`, {
+    console.log("Fetching access token from AWS...");
+    const aws_token_proxy =
+      "https://snjcy6ziohhllwncvuk5tqyxri0gzsxh.lambda-url.us-east-1.on.aws/";
+    const response = await fetch(`${aws_token_proxy}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code }),
@@ -46,7 +58,7 @@ export const getAccessToken = async () => {
       const data = await response.json();
       throw new Error(data.error || "Failed to fetch access token.");
     }
-
+    console.log("Access token fetched successfully.");
     const data = await response.json();
     localStorage.setItem("access_token", data.accessToken);
     return data.accessToken;
@@ -56,7 +68,7 @@ export const getAccessToken = async () => {
   }
 };
 
-export const getEvents = async () => {
+export const getEvents = async (token) => {
   try {
     const useMockData = import.meta.env.VITE_REACT_APP_USE_MOCK_DATA === "true";
     if (useMockData) {
@@ -64,7 +76,6 @@ export const getEvents = async () => {
       return mockData;
     }
 
-    const token = await getAccessToken();
     if (!token) {
       console.error("Authorization token is missing.");
       throw new Error("Authorization token is missing.");
