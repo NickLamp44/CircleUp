@@ -3,7 +3,15 @@ import { InfoAlert, WarningAlert, ErrorAlert } from "./components/alert";
 import CitySearch from "./components/citySearch";
 import EventList from "./components/eventList";
 import NumberOfEvents from "./components/numberOfEvents";
-import { getEvents, extractLocations } from "./api";
+import EventGenresChart from "./components/eventGenresChart";
+
+import {
+  getAccessToken,
+  getEvents,
+  extractLocations,
+  getAuthUrl,
+  logEnvironmentVariables,
+} from "./api";
 
 class App extends Component {
   state = {
@@ -17,10 +25,28 @@ class App extends Component {
     errorAlert: "",
   };
 
-  fetchEvents = async () => {
-    try {
-      const events = await getEvents();
+  async componentDidMount() {
+    const token = await this.handleAuthentication();
+    await this.fetchEvents(token);
+  }
 
+  handleAuthentication = async () => {
+    debugger;
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        console.log("Redirecting to Google OAuth...");
+        window.location.href = await getAuthUrl(); // Adjust based on your setup
+      }
+      return token;
+    } catch (error) {
+      window.alert("An error occurred while fetching the access token.", error);
+    }
+  };
+
+  fetchEvents = async (token) => {
+    try {
+      const events = await getEvents(token);
       if (!events || events.length === 0) {
         throw new Error("No events found. Verify mock data or API response.");
       }
@@ -39,13 +65,8 @@ class App extends Component {
     }
   };
 
-  componentDidMount() {
-    this.fetchEvents();
-  }
-
   setCurrentCity = (city) => {
     const { events } = this.state;
-
     this.setState({
       currentCity: city,
       filteredEvents:
@@ -87,6 +108,7 @@ class App extends Component {
           setErrorAlert={this.setErrorAlert}
         />
         <EventList events={filteredEvents} />
+        <EventGenresChart allLocations={allLocations} events={filteredEvents} />
       </div>
     );
   }
