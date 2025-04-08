@@ -4,7 +4,7 @@ import CitySearch from "./components/citySearch";
 import EventList from "./components/eventList";
 import NumberOfEvents from "./components/numberOfEvents";
 import EventGenresChart from "./components/eventGenresChart";
-
+import CityEventsChart from "./components/cityEventChart";
 import {
   getAccessToken,
   getEvents,
@@ -12,7 +12,7 @@ import {
   getAuthUrl,
   logEnvironmentVariables,
 } from "./api";
-
+import "./App.css";
 class App extends Component {
   state = {
     allLocations: [],
@@ -26,8 +26,8 @@ class App extends Component {
   };
 
   async componentDidMount() {
-    const token = await this.handleAuthentication();
-    await this.fetchEvents(token);
+    // const token = await this.handleAuthentication();
+    await this.fetchEvents(null);
   }
 
   handleAuthentication = async () => {
@@ -107,8 +107,14 @@ class App extends Component {
           setCurrentNOE={(number) => this.setState({ currentNOE: number })}
           setErrorAlert={this.setErrorAlert}
         />
+        <div className="charts-container">
+          <EventGenresChart events={filteredEvents} />
+          <CityEventsChart
+            allLocations={allLocations}
+            events={filteredEvents}
+          />
+        </div>
         <EventList events={filteredEvents} />
-        <EventGenresChart allLocations={allLocations} events={filteredEvents} />
       </div>
     );
   }

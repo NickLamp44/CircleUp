@@ -29,10 +29,10 @@ export const getAccessToken = async () => {
   );
 
   // Determine correct redirect URI
-  const redirectURI =
-    import.meta.env.MODE === "production"
-      ? import.meta.env.VITE_REDIRECT_URI_PRODUCTION
-      : import.meta.env.VITE_REDIRECT_URI_LOCAL;
+  // const redirectURI =
+  //   import.meta.env.MODE === "production"
+  //     ? import.meta.env.VITE_REDIRECT_URI_PRODUCTION
+  //     : import.meta.env.VITE_REDIRECT_URI_LOCAL;
 
   const searchParams = new URLSearchParams(window.location.search);
   const code = searchParams.get("code");
@@ -65,7 +65,7 @@ export const getAccessToken = async () => {
 export const getEvents = async (token) => {
   try {
     const useMockData = import.meta.env.VITE_REACT_APP_USE_MOCK_DATA === "true";
-    if (useMockData) {
+    if (true) {
       console.log("Returning mock data:", mockData);
       return mockData;
     }
