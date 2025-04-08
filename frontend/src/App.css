@@ -78,3 +78,9 @@ input[type="number"] {
   outline: none;
   cursor: pointer;
 }
+
+.charts-container {
+  width: 1000px;
+  display: flex;
+  margin: auto;
+}
